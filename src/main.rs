@@ -3,6 +3,7 @@ use crate::communication::picamctl::start_listening;
 
 mod communication;
 mod lobby;
+mod camera;
 
 fn main() {
     let lobby = Lobby::new();

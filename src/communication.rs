@@ -2,6 +2,7 @@ pub mod picamctl {
 
     use std::{io::Error, net::{Ipv4Addr, SocketAddr, SocketAddrV4, UdpSocket}};
     use crate::lobby::picamctl::Lobby;
+    use crate::camera::picamctl::Camera;
 
     const PORT: u16 = 8085;
 
@@ -13,7 +14,7 @@ pub mod picamctl {
         let bind_addr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), PORT);
         let sock = UdpSocket::bind(bind_addr)?;
         let mut buffer: [u8; 2] = [0, 0];
-        let mut is_camera_enabled = false;
+        let mut camera = Camera::new();
         
         loop {
             let (bytes, received_address) = sock.recv_from(&mut buffer)?;
@@ -31,31 +32,24 @@ pub mod picamctl {
                 CMD_CONNECT => {
                     match lobby.try_connect_client(client_address) {
                         Ok(size) => {
-                            if size > 0 && is_camera_enabled == false {
-                                set_camera_enabled(true)?;
-                                is_camera_enabled = true;
+                            if size > 0 && !camera.is_enabled() {
+                                camera.set_enabled(true)?;
                             }
                         },
                         Err(er) => eprintln!("Failed to connect client {}: {}", client_address, er),
                     }
                 },
                 CMD_DISCONNECT => {
-                    if lobby.try_disconnect_client(&client_address) == 0 && is_camera_enabled {
-                        set_camera_enabled(false)?;
-                        is_camera_enabled = false;
+                    if lobby.try_disconnect_client(&client_address) == 0 && camera.is_enabled() {
+                        camera.set_enabled(false)?;
                     }
                 },
                 CMD_DISCONNECT_ALL => {
                     lobby.disconnect_all_clients();
-                    set_camera_enabled(false)?;
-                    is_camera_enabled = false;
+                    camera.set_enabled(false)?;
                 },
                 _ => continue,
             }
         }
-    }
-
-    pub fn set_camera_enabled (is_enabled: bool) -> Result<(), Error> {
-        Ok(())
     }
 }
